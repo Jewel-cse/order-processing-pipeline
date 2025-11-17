@@ -1,5 +1,6 @@
 package com.rana.order_service;
 
+import com.rana.event_contracts.OrderEvent;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;

@@ -43,6 +43,12 @@
 			<artifactId>jackson-databind</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>com.rana</groupId>
+			<artifactId>event-contracts</artifactId>
+			<version>1.0.0</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>

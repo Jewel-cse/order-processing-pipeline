@@ -3,7 +3,7 @@ package com.rana.analytics_service;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StoreQueryParameters;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
-import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
+import org.apache.kafka.streams.state.ReadOnlyWindowStore;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.config.StreamsBuilderFactoryBean;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,19 +21,41 @@ public class AnalyticsController {
         this.factoryBean = factoryBean;
     }
 
-    @GetMapping("/spend/{customerId}")
-    public ResponseEntity<String> getSpend(@PathVariable String customerId) {
+    @GetMapping("/health")  
+    public ResponseEntity<String> health() {
+        KafkaStreams ks = factoryBean.getKafkaStreams();
+        return ResponseEntity.ok("Kafka Streams state: " + (ks != null ? ks.state() : "null"));
+    }
+
+    @GetMapping("/daily-spend/{customerId}/{date}")
+    public ResponseEntity<String> getDailySpend(@PathVariable String customerId,
+            @PathVariable String date) {
+        // Parse the date (expected format: yyyy-MM-dd) and compute window boundaries
+        java.time.LocalDate localDate = java.time.LocalDate.parse(date);
+        java.time.Instant startInstant = localDate.atStartOfDay(java.time.ZoneOffset.UTC).toInstant();
+        java.time.Instant endInstant = startInstant.plus(java.time.Duration.ofDays(1));
+        long start = startInstant.toEpochMilli();
+        long end = endInstant.toEpochMilli();
+
         KafkaStreams kafkaStreams = factoryBean.getKafkaStreams();
         if (kafkaStreams == null) {
             throw new RuntimeException("Kafka Streams is not started");
         }
-        // Ensure the streams are in a RUNNING state before querying the store
+        // Ensure streams are running
         if (kafkaStreams.state() != org.apache.kafka.streams.KafkaStreams.State.RUNNING) {
-            // You may choose to return a default value or throw an exception
-            throw new IllegalStateException("Kafka Streams is not running. Current state: " + kafkaStreams.state());
+            throw new IllegalStateException("Kafka Streams not running: " + kafkaStreams.state());
         }
-        ReadOnlyKeyValueStore<String, Double> store = kafkaStreams.store(
-                StoreQueryParameters.fromNameAndType("customer-spend-store", QueryableStoreTypes.keyValueStore()));
-        return ResponseEntity.ok(String.format("Customer %s has spent %s", customerId, store.get(customerId)));
+        // Query the window store
+        ReadOnlyWindowStore<String, Double> windowStore = kafkaStreams.store(
+                StoreQueryParameters.fromNameAndType("customer-daily-spend-store",
+                        QueryableStoreTypes.windowStore()));
+        // Fetch the aggregate for the exact day (tumbling window, so there is at most
+        // one entry)
+        Double spend = windowStore.fetch(customerId, start);
+        if (spend == null) {
+            spend = 0.0;
+        }
+        String response = String.format("Customer %s spent %s on %s", customerId, spend, date);
+        return ResponseEntity.ok(response);
     }
 }

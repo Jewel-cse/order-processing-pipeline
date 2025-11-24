@@ -2,23 +2,31 @@ package com.rana.order_service;
 
 import com.rana.event_contracts.OrderEvent;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/orders")
+@RequestMapping("/order")
 public class OrderController {
     private final OrderProducerServices producer;
 
-    public OrderController(OrderProducerServices producer) { this.producer = producer; }
+    public OrderController(OrderProducerServices producer) {
+        this.producer = producer;
+    }
 
-    @PostMapping("/create")
-    public ResponseEntity<String> create(@RequestBody OrderEvent event) {
-        event.setStatus("CREATED");
-        producer.publish(event);
+    @GetMapping("/create")
+    public ResponseEntity<String> create() {
+        for (int i = 0; i < 100; i++) {
+            OrderEvent event = new OrderEvent(
+                    "ORD123456-" + i, 
+                    "CUST789012", 
+                     99.99 + i,
+                    "USD",
+                    "CONFIRMED");
+            producer.publish(event);
+        }
+
         return ResponseEntity.ok("published");
     }
 }
-

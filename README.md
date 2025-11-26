@@ -6,7 +6,7 @@ A robust, **event‑driven microservices** example that demonstrates an end‑to
 
 ---
 
-## � Project Structure
+## 📁 Project Structure
 
 ```text
 order-processing-pipeline/
@@ -90,33 +90,32 @@ order-processing-pipeline/
 
 ## 🧪 How to Test
 
-1. **Create an Order**
+1. **Create Orders (bulk publish, GET request for browser)**
    ```bash
-   curl -X POST http://localhost:8080/order/create \
-        -H "Content-Type: application/json" \
-        -d '{"customerId":"CUST789012","item":"Laptop","price":1200.00}'
+   curl -X GET http://localhost:8080/order/create \
+        -H "Content-Type: application/json"
    ```
-   The order event is published to the `order-events` topic.
+   The endpoint publishes **100** `OrderEvent` messages (customer ID `CUST789012`) to the `order-events` topic and returns the plain‑text response `"published"`.
 
 2. **Verify Payment Processing**
-   - Check the logs of `payment-service`; you should see the order being consumed and the payment simulated.
+   - Check the logs of `payment-service`; you should see the 100 orders being consumed and payments simulated.
 
-3. **Query Daily Spend (String endpoint)**
+3. **Query Daily Spend (String response)**
    ```bash
    curl http://localhost:8081/analytics/daily-spend/CUST789012/2025-11-24
    ```
-   Expected response:
-   ```String
+   Expected response (plain string):
+   ```
    "Customer CUST789012 spent 1200.0 on 2025-11-24"
    ```
+   The endpoint returns a simple string rather than JSON.
 
 4. **Test Failure & DLQ**
    ```bash
-   curl -X POST http://localhost:8080/order/create \
-        -H "Content-Type: application/json" \
-        -d '{"customerId":"CUST789012","item":"Phone","price":13}'
+   curl -X GET http://localhost:8080/order/create \
+        -H "Content-Type: application/json"
    ```
-   The payment service will retry three times and then move the message to the dead‑letter topic `order-events-topic.DLT`. You can inspect it via Kafdrop:
+   (The same bulk endpoint will attempt to publish events; if any event triggers a failure in the payment service, it will be retried three times and then moved to the dead‑letter topic `order-events-topic.DLT`). You can inspect the DLQ via Kafdrop:
    ```bash
    open http://localhost:9000
    ```

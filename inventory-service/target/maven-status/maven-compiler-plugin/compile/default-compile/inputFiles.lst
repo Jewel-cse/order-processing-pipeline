@@ -1,0 +1,12 @@
+/media/jewel/Projects/order-processing-pipeline/inventory-service/src/main/java/com/rana/inventory_service/InventoryServiceApplication.java
+/media/jewel/Projects/order-processing-pipeline/inventory-service/src/main/java/com/rana/inventory_service/config/KafkaConsumerConfig.java
+/media/jewel/Projects/order-processing-pipeline/inventory-service/src/main/java/com/rana/inventory_service/config/KafkaProducerConfig.java
+/media/jewel/Projects/order-processing-pipeline/inventory-service/src/main/java/com/rana/inventory_service/controller/InventoryController.java
+/media/jewel/Projects/order-processing-pipeline/inventory-service/src/main/java/com/rana/inventory_service/listener/InventoryEventListener.java
+/media/jewel/Projects/order-processing-pipeline/inventory-service/src/main/java/com/rana/inventory_service/model/InventoryReservation.java
+/media/jewel/Projects/order-processing-pipeline/inventory-service/src/main/java/com/rana/inventory_service/model/Product.java
+/media/jewel/Projects/order-processing-pipeline/inventory-service/src/main/java/com/rana/inventory_service/model/ReservationStatus.java
+/media/jewel/Projects/order-processing-pipeline/inventory-service/src/main/java/com/rana/inventory_service/producer/InventoryEventProducer.java
+/media/jewel/Projects/order-processing-pipeline/inventory-service/src/main/java/com/rana/inventory_service/repository/InventoryRepository.java
+/media/jewel/Projects/order-processing-pipeline/inventory-service/src/main/java/com/rana/inventory_service/repository/ReservationRepository.java
+/media/jewel/Projects/order-processing-pipeline/inventory-service/src/main/java/com/rana/inventory_service/service/InventoryService.java

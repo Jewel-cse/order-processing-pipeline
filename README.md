@@ -1,108 +1,143 @@
------
-
 # Order Processing Pipeline
 
-A robust, event-driven microservices architecture demonstrating an order processing flow using **Apache Kafka**, **Spring Boot**, and **Docker**. This project implements resilient messaging patterns including **Retry Logic** and **Dead Letter Queues (DLQ)** to handle distributed transactions reliably.
+## 📖 Project Overview
 
-## 🚀 Project Structure
+A robust, **event‑driven microservices** example that demonstrates an end‑to‑end order processing flow using **Apache Kafka (KRaft mode, no Zookeeper)**, **Spring Boot 3.5.7**, and **Docker**. The solution showcases resilient messaging patterns such as **retryable topics**, **dead‑letter queues (DLQ)**, and real‑time analytics with **Kafka Streams**.
 
-The repository is organized into the following modules:
+---
 
-  * **`order-service`**: The **Producer** service. It exposes REST endpoints to create orders and publishes order events to Kafka.
-  * **`payment-service`**: The **Consumer** service. It listens for order events, processes payments, and handles failures with retry mechanisms.
-  * **`event-contracts`**: A shared library containing event schemas/DTOs to ensure consistency between services.
-  * **`infrastructure`**: Contains Docker Compose configurations to spin up the Kafka ecosystem (Zookeeper, Kafka Broker, etc.).
+## � Project Structure
+
+```text
+order-processing-pipeline/
+├─ analytics-service/      # Kafka Streams service that aggregates daily spend per customer
+├─ event-contracts/        # Shared DTOs / event schemas
+├─ infrastructure/         # Docker‑Compose for Kafka (KRaft) & Kafdrop UI
+├─ order-service/          # Producer – REST API to create orders
+├─ payment-service/        # Consumer – processes payments, retries, DLQ handling
+├─ pom.xml                 # Maven parent POM
+└─ README.md               # This documentation
+```
+
+---
 
 ## ✨ Key Features
 
-  * **Event-Driven Architecture**: Decoupled services communicating asynchronously via Kafka.
-  * **Resiliency**: Implements **Retryable Topics** to handle transient failures automatically.
-  * **Fault Tolerance**: configuring **Dead Letter Queues (DLQ)** for poison pill messages that cannot be processed after max retries.
-  * **Infrastructure as Code**: Complete Kafka environment setup using Docker Compose.
+- **Event‑Driven Architecture** – Services communicate asynchronously via Kafka topics.
+- **KRaft Kafka** – Modern Kafka deployment without Zookeeper.
+- **Resiliency** – Automatic retries with configurable back‑off and DLQ for poison messages.
+- **Real‑Time Analytics** – `analytics‑service` uses Kafka Streams to compute daily spend per customer.
+- **Infrastructure as Code** – One‑click Kafka cluster setup via Docker‑Compose.
+- **Observability** – Spring Actuator endpoints and Kafdrop UI for topic inspection.
+
+---
 
 ## 🛠️ Tech Stack
 
-  * **Language**: Java 17+
-  * **Framework**: Spring Boot 3.x
-  * **Messaging**: Apache Kafka
-  * **Containerization**: Docker & Docker Compose
-  * **Build Tool**: Maven
+| Category | Technology |
+|----------|------------|
+| **JDK** | **Java 21** |
+| **Framework** | **Spring Boot 3.5.7** |
+| **Messaging** | **Apache Kafka 3.x (KRaft mode)** |
+| **Containerisation** | **Docker & Docker‑Compose** |
+| **Build** | **Maven** |
+| **Testing** | **JUnit 5, Testcontainers** |
+
+---
 
 ## ⚙️ Getting Started
 
-### Used Tools
+### Prerequisites
 
-  * Java 21
-  * Docker Desktop installed and running
-  * Maven
+- **Java 21** (ensure `JAVA_HOME` points to a JDK 21 installation)
+- **Docker Desktop** (running)
+- **Maven** (`mvn` on the PATH)
 
-### 1\. Start the Infrastructure
+### Step‑by‑Step
 
-Navigate to the infrastructure folder and start Kafka:
+1. **Start the Kafka infrastructure** (KRaft, no Zookeeper)
+   ```bash
+   cd infrastructure
+   docker-compose up -d
+   ```
+   This brings up a single‑node Kafka broker and the Kafdrop UI (http://localhost:9000).
 
-```bash
-cd infrastructure
-docker-compose up -d
-```
+2. **Build all modules**
+   ```bash
+   cd ..   # back to repository root
+   mvn clean install
+   ```
+   Maven compiles the code, runs unit tests, and packages each service.
 
-### 2\. Build the Project
+3. **Run the services** (open three terminals, one per service)
+   ```bash
+   # Terminal 1 – Order Service
+   cd order-service
+   mvn spring-boot:run
+   ```
+   ```bash
+   # Terminal 2 – Payment Service
+   cd payment-service
+   mvn spring-boot:run
+   ```
+   ```bash
+   # Terminal 3 – Analytics Service (optional, for spend queries)
+   cd analytics-service
+   mvn spring-boot:run
+   ```
 
-From the root directory, build all modules:
-
-```bash
-mvn clean install
-```
-
-### 3\. Run the Services
-
-**Run Order Service (Terminal 1):**
-
-```bash
-cd order-service
-mvn spring-boot:run
-```
-
-**Run Payment Service (Terminal 2):**
-
-```bash
-cd payment-service
-mvn spring-boot:run
-```
+---
 
 ## 🧪 How to Test
 
-1.  **Place an Order**: Send a POST request to the Order Service.
+1. **Create an Order**
+   ```bash
+   curl -X POST http://localhost:8080/order/create \
+        -H "Content-Type: application/json" \
+        -d '{"customerId":"CUST789012","item":"Laptop","price":1200.00}'
+   ```
+   The order event is published to the `order-events` topic.
 
-    ```bash
-    curl -X POST http://localhost:8080/orders \
-    -H "Content-Type: application/json" \
-    -d '{"orderId": "101", "item": "Laptop", "price": 1200.00}'
-    ```
+2. **Verify Payment Processing**
+   - Check the logs of `payment-service`; you should see the order being consumed and the payment simulated.
 
-2.  **Verify Processing**: Check the logs of the `payment-service`. You should see the order being consumed and processed.
+3. **Query Daily Spend (String endpoint)**
+   ```bash
+   curl http://localhost:8081/analytics/daily-spend/CUST789012/2025-11-24
+   ```
+   Expected response:
+   ```String
+   "Customer CUST789012 spent 1200.0 on 2025-11-24"
+   ```
 
-3.  **Test Error Handling**: Send an invalid order (price=13) to observe the **Retry** attempts and eventual move to the **DLQ**.
+4. **Test Failure & DLQ**
+   ```bash
+   curl -X POST http://localhost:8080/order/create \
+        -H "Content-Type: application/json" \
+        -d '{"customerId":"CUST789012","item":"Phone","price":13}'
+   ```
+   The payment service will retry three times and then move the message to the dead‑letter topic `order-events-topic.DLT`. You can inspect it via Kafdrop:
+   ```bash
+   open http://localhost:9000
+   ```
 
-     - 3 retry attempts
-  
-     - Then the message lands in order-events-topic.DLT
-  
-     - You can consume the DLT topic to inspect the failed event
+---
 
+## 🚀 Future Improvements
 
-## 🧠 Future Enhancements
+- **Multi‑node Kafka cluster** with partition & replica configuration.
+- **Metrics & Alerting** – Prometheus + Grafana for consumer lag, throughput, error rates.
+- **Schema Registry** – Confluent Schema Registry with Avro/Protobuf for strong contract enforcement.
+- **Kubernetes Deployment** – Helm charts for services and Kafka.
+- **End‑to‑End Test Suite** – Simulate high‑volume event flow using Testcontainers.
+- **Security** – TLS encryption and SASL authentication for Kafka communication.
 
-    - Add topic partition / replica configuration for multi-node Kafka cluster
-    
-    - Add consumer lag monitoring, metrics, alerting
-    
-    - Add schema registry (e.g., Confluent Schema Registry) and Avro/Protobuf for event contracts
-    
-    - Add Kubernetes deployment for services and Kafka cluster
-    
-    - Add end-to-end test suite to simulate high-volume event flow
-
+---
 
 ## 🤝 Contributing
 
-Contributions are welcome\! Please feel free to submit a Pull Request.
+Contributions are welcome! Fork the repository, create a feature branch, and submit a pull request. Ensure all tests pass and follow the existing code style.
+
+---
+
+*Happy coding!*

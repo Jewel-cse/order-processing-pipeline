@@ -1,31 +1,41 @@
 package com.rana.payment_service;
 
-import com.rana.event_contracts.OrderEvent;
+import com.rana.event_contracts.*;
+import com.rana.payment_service.producer.PaymentEventProducer;
+import com.rana.payment_service.service.PaymentService;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.annotation.RetryableTopic;
-import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Service;
 
 @Service
 public class PaymentListener {
 
-    @RetryableTopic(
-            attempts = "3",
-            backoff = @Backoff(delay = 5000),
-            include = { RuntimeException.class },
-            dltTopicSuffix = ".DLT"
-    )
-    @KafkaListener(topics = "${app.topic}", groupId = "payment-service-group")
-    public void listen(OrderEvent event) {
-        System.out.println("PaymentService received: " + event.getOrderId() + ", amount=" + event.getAmount());
+    private final PaymentService paymentService;
+    private final PaymentEventProducer paymentEventProducer;
 
-        // Simulate business error
-        if (Double.compare(event.getAmount(), 13.00) == 0) {
-            System.out.println("Simulating business error for amount 13.00");
-            throw new RuntimeException("Unlucky amount");
+    public PaymentListener(PaymentService paymentService, PaymentEventProducer paymentEventProducer) {
+        this.paymentService = paymentService;
+        this.paymentEventProducer = paymentEventProducer;
+    }
+
+    @KafkaListener(topics = "${app.saga-topic}", groupId = "${spring.kafka.consumer.group-id}")
+    public void handleSagaEvent(SagaEvent sagaEvent) {
+        System.out.println("Received SagaEvent: " + sagaEvent.getSagaId() +
+                ", status: " + sagaEvent.getSagaStatus() +
+                ", orderId: " + sagaEvent.getOrderId());
+
+        SagaStatus status = sagaEvent.getSagaStatus();
+
+        if (status == SagaStatus.PAYMENT_PENDING) {
+            // Process payment
+            PaymentEvent paymentEvent = paymentService.processPayment(sagaEvent);
+            paymentEventProducer.publishPaymentEvent(paymentEvent);
+
+        } else if (status == SagaStatus.COMPENSATING) {
+            // Check if this is a payment compensation
+            String compensationType = (String) sagaEvent.getPayload().get("compensationType");
+            if ("PAYMENT_REFUND".equals(compensationType)) {
+                paymentService.processRefund(sagaEvent);
+            }
         }
-        // simulate processing
-        System.out.println("Processed order: " + event.getOrderId());
     }
 }
-

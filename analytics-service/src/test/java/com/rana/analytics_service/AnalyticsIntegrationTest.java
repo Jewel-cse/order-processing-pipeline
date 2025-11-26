@@ -18,6 +18,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.test.annotation.DirtiesContext;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -39,8 +40,8 @@ public class AnalyticsIntegrationTest {
     @Test
     public void testAnalyticsFlow() {
         String customerId = "cust1";
-        OrderEvent event1 = new OrderEvent("order1", customerId, 100.0, "USD", "CREATED");
-        OrderEvent event2 = new OrderEvent("order2", customerId, 50.0, "USD", "CREATED");
+        OrderEvent event1 = new OrderEvent("order1", customerId, 100.0, "USD", "CREATED", List.of());
+        OrderEvent event2 = new OrderEvent("order2", customerId, 50.0, "USD", "CREATED", List.of());
 
         kafkaTemplate.send("order-events-topic", Objects.requireNonNull(event1.getOrderId()), event1);
         kafkaTemplate.send("order-events-topic", Objects.requireNonNull(event2.getOrderId()), event2);

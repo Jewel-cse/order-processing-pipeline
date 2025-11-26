@@ -15,8 +15,11 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
 server:
   port: 7070
 
 app:
-  topic: order-events-topic
+  saga-topic: saga-events
+  payment-topic: payment-events
+

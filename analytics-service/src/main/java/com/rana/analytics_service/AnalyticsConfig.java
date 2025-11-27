@@ -26,6 +26,13 @@ public class AnalyticsConfig {
         @Bean
         public KStream<String, OrderEvent> kStream(StreamsBuilder builder) {
                 JsonSerde<OrderEvent> orderEventSerde = new JsonSerde<>(OrderEvent.class);
+                orderEventSerde.configure(
+                                java.util.Map.of(
+                                                org.springframework.kafka.support.serializer.JsonDeserializer.TRUSTED_PACKAGES,
+                                                "com.rana.event_contracts",
+                                                org.springframework.kafka.support.serializer.JsonDeserializer.USE_TYPE_INFO_HEADERS,
+                                                false),
+                                false);
 
                 // 1️⃣ Original stream – forward raw events (optional)
                 KStream<String, OrderEvent> stream = builder.stream(

@@ -14,7 +14,7 @@ public class InventoryEventListener {
         this.sagaOrchestrator = sagaOrchestrator;
     }
 
-    @KafkaListener(topics = "${app.inventory-topic}", groupId = "${spring.kafka.consumer.group-id}")
+    @KafkaListener(topics = "${app.inventory-topic}", groupId = "${spring.kafka.consumer.group-id}", containerFactory = "inventoryEventKafkaListenerContainerFactory")
     public void handleInventoryEvent(InventoryEvent inventoryEvent) {
         System.out.println("OrderService received InventoryEvent for order: " + inventoryEvent.getOrderId() +
                 ", status: " + inventoryEvent.getStatus());

@@ -86,6 +86,12 @@ order-processing-pipeline/
    mvn spring-boot:run
    ```
 
+   ```bash
+   # Terminal 4 – Inventory Service
+   cd inventory-service
+   mvn spring-boot:run
+   ```
+
 ---
 
 ## 🧪 How to Test

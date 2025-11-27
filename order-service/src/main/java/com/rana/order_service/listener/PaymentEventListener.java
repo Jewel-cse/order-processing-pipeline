@@ -14,7 +14,7 @@ public class PaymentEventListener {
         this.sagaOrchestrator = sagaOrchestrator;
     }
 
-    @KafkaListener(topics = "${app.payment-topic}", groupId = "${spring.kafka.consumer.group-id}")
+    @KafkaListener(topics = "${app.payment-topic}", groupId = "${spring.kafka.consumer.group-id}", containerFactory = "paymentEventKafkaListenerContainerFactory")
     public void handlePaymentEvent(PaymentEvent paymentEvent) {
         System.out.println("OrderService received PaymentEvent for order: " + paymentEvent.getOrderId() +
                 ", status: " + paymentEvent.getStatus());
